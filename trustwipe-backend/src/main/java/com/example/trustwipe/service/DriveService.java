@@ -1,0 +1,100 @@
+package com.example.trustwipe.service;
+
+import com.example.trustwipe.model.Asset;
+import com.example.trustwipe.repository.AssetRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class DriveService {
+
+    private static final Logger log = LoggerFactory.getLogger(DriveService.class);
+
+    @Autowired
+    private AssetRepository assetRepository;
+
+    /**
+     * Scans for system drives and automatically registers new ones in the database.
+     * @return List of all registered assets.
+     */
+    public List<Asset> scanAndRegisterDrives() {
+        File[] roots = File.listRoots();
+        log.info("System roots detected: {}", roots.length);
+        
+        // 1. Get all currently registered assets
+        List<Asset> existingAssets = assetRepository.findAll();
+        List<String> currentRootPaths = new ArrayList<>();
+        List<Asset> activeAssets = new ArrayList<>();
+
+        // 2. Process physical drives found on the system
+        for (File root : roots) {
+            String path = root.getAbsolutePath();
+            currentRootPaths.add(path.toUpperCase());
+            
+            Optional<Asset> existingAsset = assetRepository.findByNameIgnoreCase(path);
+
+            if (existingAsset.isEmpty()) {
+                log.info("Registering NEW drive: {}", path);
+                String type = detectDriveType(root);
+                long size = root.getTotalSpace();
+                
+                if (size > 0) {
+                    Asset newAsset = new Asset(path, type, size, "CONNECTED");
+                    assetRepository.save(newAsset);
+                    activeAssets.add(newAsset);
+                }
+            } else {
+                Asset asset = existingAsset.get();
+                // Update status to CONNECTED if it was disconnected
+                if (!"WIPING".equals(asset.getStatus()) && !"WIPED".equals(asset.getStatus())) {
+                    asset.setStatus("CONNECTED");
+                    assetRepository.save(asset);
+                }
+                activeAssets.add(asset);
+            }
+        }
+
+        // 3. Update status of registered assets that are NOT in the current scan
+        for (Asset asset : existingAssets) {
+            if (asset.getName() != null && !currentRootPaths.contains(asset.getName().toUpperCase())) {
+                if (!"DISCONNECTED".equals(asset.getStatus()) && 
+                    !"WIPED".equals(asset.getStatus()) && 
+                    !"FAILED".equals(asset.getStatus())) {
+                    log.info("Drive disconnected: {}", asset.getName());
+                    asset.setStatus("DISCONNECTED");
+                    assetRepository.save(asset);
+                }
+            }
+        }
+
+        return activeAssets;
+    }
+
+    private String detectDriveType(File root) {
+        // High-level heuristic for drive type
+        // In a real scenario, this would use OS-specific commands (lsblk, wmic, etc.)
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            // Very basic heuristic: A: and B: are floppy, C: is usually HDD/SSD
+            if (root.getAbsolutePath().startsWith("A:") || root.getAbsolutePath().startsWith("B:")) {
+                return "FLOPPY";
+            }
+            // Can't easily distinguish HDD/SSD/USB via File API alone in Java
+            // Defaulting to "UNKNOWN" for simulation
+            return "UNKNOWN";
+        }
+        return "UNKNOWN";
+    }
+
+    public List<Asset> getAllRegisteredAssets() {
+        return assetRepository.findAll().stream()
+                .filter(a -> a.getName() != null)
+                .toList();
+    }
+}

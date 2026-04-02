@@ -1,0 +1,26 @@
+# General / OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Backend (Java)
+target/
+build/
+
+# Frontend (Node)
+node_modules/
+dist/
+coverage/
+
+# Environment / Secrets
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
