@@ -23,13 +23,22 @@ public class DataLoader implements CommandLineRunner {
     public void run(String... args) throws Exception {
         log.info("Starting initial system drive scan...");
         
-        // We removed assetRepository.deleteAll() to maintain data persistence.
-        // Instead, we just trigger a real scan to find your actual hardware.
-        try {
-            driveService.scanAndRegisterDrives();
-            log.info("Initial scan complete. Database is now persistent.");
-        } catch (Exception e) {
-            log.error("Failed to perform initial drive scan: {}", e.getMessage());
+        // Retry logic for MongoDB connection
+        int retries = 5;
+        while (retries > 0) {
+            try {
+                driveService.scanAndRegisterDrives();
+                log.info("Initial scan complete. Database is now persistent.");
+                break;
+            } catch (Exception e) {
+                retries--;
+                log.error("Failed to perform initial drive scan: {}. Retrying in 5s... (Retries left: {})", e.getMessage(), retries);
+                if (retries > 0) {
+                    Thread.sleep(5000);
+                } else {
+                    log.error("MAX RETRIES REACHED. Initial drive scan failed permanently.");
+                }
+            }
         }
     }
 }

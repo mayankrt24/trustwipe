@@ -1,5 +1,7 @@
 package com.example.trustwipe.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Response DTO for authentication operations.
  */
@@ -7,6 +9,7 @@ public class AuthResponse {
     private String message;
     private String token;
     private String email;
+    @JsonProperty("success")
     private boolean success;
 
     public AuthResponse() {}
@@ -32,6 +35,8 @@ public class AuthResponse {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
+    @JsonProperty("success")
     public boolean isSuccess() { return success; }
+    @JsonProperty("success")
     public void setSuccess(boolean success) { this.success = success; }
 }

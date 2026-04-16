@@ -29,34 +29,42 @@ public class AuthService {
      * Registers a new user if the email doesn't exist.
      */
     public AuthResponse register(AuthRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return new AuthResponse("Error: Email is already in use!", false);
+        try {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                return new AuthResponse("Error: Email is already in use!", false);
+            }
+
+            User user = new User(
+                request.getEmail(),
+                passwordEncoder.encode(request.getPassword()),
+                LocalDateTime.now()
+            );
+
+            userRepository.save(user);
+
+            return new AuthResponse("User registered successfully!", true);
+        } catch (Exception e) {
+            return new AuthResponse("Error: Database connection failed. " + e.getMessage(), false);
         }
-
-        User user = new User(
-            request.getEmail(),
-            passwordEncoder.encode(request.getPassword()),
-            LocalDateTime.now()
-        );
-
-        userRepository.save(user);
-
-        return new AuthResponse("User registered successfully!", true);
     }
 
     /**
      * Authenticates a user based on email and password.
      */
     public AuthResponse login(AuthRequest request) {
-        Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
+        try {
+            Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
 
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                return new AuthResponse("Login successful!", UUID.randomUUID().toString(), user.getEmail(), true);
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+                if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                    return new AuthResponse("Login successful!", UUID.randomUUID().toString(), user.getEmail(), true);
+                }
             }
-        }
 
-        return new AuthResponse("Error: Invalid email or password", false);
+            return new AuthResponse("Error: Invalid email or password", false);
+        } catch (Exception e) {
+            return new AuthResponse("Error: Database connection failed. " + e.getMessage(), false);
+        }
     }
 }

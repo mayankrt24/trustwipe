@@ -36,6 +36,7 @@ public class DriveService {
         // 2. Process physical drives found on the system
         for (File root : roots) {
             String path = root.getAbsolutePath();
+            log.info("Checking system root: {}", path);
             currentRootPaths.add(path.toUpperCase());
             
             Optional<Asset> existingAsset = assetRepository.findByNameIgnoreCase(path);
@@ -47,11 +48,15 @@ public class DriveService {
                 
                 if (size > 0) {
                     Asset newAsset = new Asset(path, type, size, "CONNECTED");
-                    assetRepository.save(newAsset);
-                    activeAssets.add(newAsset);
+                    Asset saved = assetRepository.save(newAsset);
+                    log.info("Saved new asset to MongoDB with ID: {}", saved.getId());
+                    activeAssets.add(saved);
+                } else {
+                    log.warn("Drive {} has 0 size, skipping registration", path);
                 }
             } else {
                 Asset asset = existingAsset.get();
+                log.info("Drive {} already exists in DB with status: {}", path, asset.getStatus());
                 // Update status to CONNECTED if it was disconnected
                 if (!"WIPING".equals(asset.getStatus()) && !"WIPED".equals(asset.getStatus())) {
                     asset.setStatus("CONNECTED");
