@@ -20,18 +20,21 @@ public class AgentController {
     private static final Map<String, Long> activeAgents = new ConcurrentHashMap<>();
     private static final Map<String, List<Object>> fileCache = new ConcurrentHashMap<>();
 
-    public void enqueueCommand(String agentId, Map<String, Object> command) {
+    public void enqueueCommand(String agentId, String userEmail, Map<String, Object> command) {
+        if ("LIST_FILES".equals(command.get("command"))) {
+            fileCache.remove(agentId + ":" + userEmail); // Clear old results
+        }
         commandQueue.put(agentId, command);
     }
 
     @PostMapping("/report-files")
-    public void reportFiles(@RequestParam String agentId, @RequestBody List<Object> files) {
-        fileCache.put(agentId, files);
+    public void reportFiles(@RequestParam String agentId, @RequestParam String userEmail, @RequestBody List<Object> files) {
+        fileCache.put(agentId + ":" + userEmail, files);
     }
 
     @GetMapping("/get-files")
-    public List<Object> getFiles(@RequestParam String agentId) {
-        return fileCache.getOrDefault(agentId, Collections.emptyList());
+    public List<Object> getFiles(@RequestParam String agentId, @RequestParam String userEmail) {
+        return fileCache.getOrDefault(agentId + ":" + userEmail, Collections.emptyList());
     }
 
     @PostMapping("/report-drives")

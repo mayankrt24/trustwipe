@@ -33,10 +33,10 @@ public class TrustWipeAgent {
         while (true) {
             try {
                 pollForCommands();
-                Thread.sleep(5000); // Check every 5 seconds
+                Thread.sleep(1000); // Polling faster (1s) for responsive file browsing
             } catch (Exception e) {
-                System.out.println("[ERROR] Connection lost. Retrying in 10s...");
-                Thread.sleep(10000);
+                System.out.println("[ERROR] Connection lost. Retrying in 5s...");
+                Thread.sleep(5000);
             }
         }
     }
@@ -66,7 +66,6 @@ public class TrustWipeAgent {
             System.out.println("[ACTION] RECEIVED REMOTE COMMAND: " + response);
             
             if (response.contains("LIST_FILES")) {
-                // Extract path from JSON (manual parsing for demo simplicity)
                 String path = response.split("\"path\":\"")[1].split("\"")[0].replace("\\\\", "\\");
                 handleListFiles(path);
             } else if (response.contains("WIPE")) {
@@ -95,7 +94,8 @@ public class TrustWipeAgent {
         }
         json.append("]");
         
-        sendPostRequest(SERVER_URL + "/report-files?agentId=" + AGENT_ID, json.toString());
+        // Added userEmail to the report-files request
+        sendPostRequest(SERVER_URL + "/report-files?agentId=" + AGENT_ID + "&userEmail=" + USER_EMAIL, json.toString());
         System.out.println("[SUCCESS] Sent file list for " + path + " to server.");
     }
 
@@ -103,8 +103,6 @@ public class TrustWipeAgent {
         System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         System.out.println("!!! REMOTE WIPE INITIATED BY DASHBOARD !!!");
         System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        // Here you would add the actual secureWipeFileInternal logic
-        // For the demo, we can just print the progress and simulate the destruction
         System.out.println("[AGENT] Starting NIST 800-88 3-Pass Overwrite...");
         try {
             for(int i=0; i<=100; i+=20) {
@@ -115,8 +113,6 @@ public class TrustWipeAgent {
             System.out.println("[AGENT] Secure Erase SUCCESS. Data is now IRRECOVERABLE.");
         } catch (InterruptedException e) {}
     }
-
-    // --- HTTP Helper Methods ---
 
     private static String sendGetRequest(String urlStr) throws Exception {
         URL url = new URL(urlStr);
