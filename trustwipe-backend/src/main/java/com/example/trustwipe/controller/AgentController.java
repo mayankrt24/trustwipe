@@ -15,16 +15,16 @@ public class AgentController {
     @Autowired
     private AssetRepository assetRepository;
 
-    // Stores pending commands for each agent: Map<AgentId, Command>
-    private static final Map<String, Map<String, Object>> commandQueue = new ConcurrentHashMap<>();
+    // Stores pending commands for each agent: Map<AgentId, List<Map<String, Object>>>
+    private static final Map<String, List<Map<String, Object>>> commandQueue = new ConcurrentHashMap<>();
     private static final Map<String, Long> activeAgents = new ConcurrentHashMap<>();
     private static final Map<String, List<Object>> fileCache = new ConcurrentHashMap<>();
 
     public void enqueueCommand(String agentId, String userEmail, Map<String, Object> command) {
         if ("LIST_FILES".equals(command.get("command"))) {
-            fileCache.remove(agentId + ":" + userEmail); // Clear old results
+            fileCache.remove(agentId + ":" + userEmail);
         }
-        commandQueue.put(agentId, command);
+        commandQueue.computeIfAbsent(agentId, k -> Collections.synchronizedList(new ArrayList<>())).add(command);
     }
 
     @PostMapping("/report-files")
@@ -70,13 +70,18 @@ public class AgentController {
     @GetMapping("/commands/{agentId}")
     public Map<String, Object> getCommands(@PathVariable String agentId) {
         activeAgents.put(agentId, System.currentTimeMillis());
-        return commandQueue.remove(agentId);
+        List<Map<String, Object>> commands = commandQueue.get(agentId);
+        if (commands != null && !commands.isEmpty()) {
+            return commands.remove(0);
+        }
+        return Collections.emptyMap();
     }
 
     @PostMapping("/command/{assetId}")
     public void sendCommand(@PathVariable String assetId, @RequestBody Map<String, Object> command) {
         // Find the agentId from the asset or just use a fixed ID for the demo
-        commandQueue.put("MAYANK-PC", command);
+        // For partial wipe of multiple files, we might call this multiple times
+        enqueueCommand("MAYANK-LAPTOP-01", "mayanklmao1@gmail.com", command);
     }
 
     @GetMapping("/active")

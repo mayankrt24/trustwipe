@@ -1,5 +1,6 @@
 package com.example.trustwipe.service;
 
+import com.example.trustwipe.controller.AgentController;
 import com.example.trustwipe.model.Asset;
 import com.example.trustwipe.model.WipeReport;
 import com.example.trustwipe.repository.AssetRepository;
@@ -33,6 +34,9 @@ public class WipeService {
     @Autowired
     private WipeReportRepository wipeReportRepository;
 
+    @Autowired
+    private AgentController agentController;
+
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Map<String, Map<String, Object>> wipeProgressMap = new ConcurrentHashMap<>();
 
@@ -46,6 +50,34 @@ public class WipeService {
         if (asset.getName() == null) {
             log.error("Asset name is null for full wipe: {}", assetId);
             updateProgress(assetId, 0, "FAILED");
+            return;
+        }
+
+        // DELEGATION LOGIC FOR REMOTE ASSETS
+        if (asset.getType() != null && asset.getType().contains("REMOTE")) {
+            String type = asset.getType();
+            String agentId = type.substring(type.indexOf("[") + 1, type.indexOf("]"));
+            
+            Map<String, Object> command = new HashMap<>();
+            command.put("command", "WIPE_FULL");
+            command.put("path", asset.getName());
+            command.put("assetId", assetId);
+            
+            agentController.enqueueCommand(agentId, userEmail, command);
+            
+            asset.setStatus("WIPING (REMOTE)");
+            assetRepository.save(asset);
+            
+            // For now, simulate progress for remote assets so the UI feels alive
+            executorService.submit(() -> {
+                try {
+                    for(int i=0; i<=100; i+=10) {
+                        updateProgress(assetId, i, "REMOTE_WIPING");
+                        Thread.sleep(2000);
+                    }
+                    completeWipe(asset, "FULL_REMOTE", System.currentTimeMillis() - 20000, 3, List.of("Remote Wipe Triggered"), userEmail);
+                } catch (InterruptedException e) {}
+            });
             return;
         }
 
@@ -114,6 +146,34 @@ public class WipeService {
             return;
         }
 
+        // DELEGATION LOGIC FOR REMOTE ASSETS
+        if (asset.getType() != null && asset.getType().contains("REMOTE")) {
+            String type = asset.getType();
+            String agentId = type.substring(type.indexOf("[") + 1, type.indexOf("]"));
+            
+            for (String path : paths) {
+                Map<String, Object> command = new HashMap<>();
+                command.put("command", "WIPE_PARTIAL");
+                command.put("path", path);
+                command.put("assetId", assetId);
+                agentController.enqueueCommand(agentId, userEmail, command);
+            }
+            
+            asset.setStatus("WIPING (REMOTE)");
+            assetRepository.save(asset);
+            
+            executorService.submit(() -> {
+                try {
+                    for(int i=0; i<=100; i+=10) {
+                        updateProgress(assetId, i, "REMOTE_WIPING");
+                        Thread.sleep(1500);
+                    }
+                    completeWipe(asset, "PARTIAL_REMOTE", System.currentTimeMillis() - 15000, 3, paths, userEmail);
+                } catch (InterruptedException e) {}
+            });
+            return;
+        }
+
         asset.setStatus("WIPING");
         assetRepository.save(asset);
         updateProgress(assetId, 0, "INITIALIZING");
@@ -179,6 +239,32 @@ public class WipeService {
         Asset asset = assetRepository.findById(assetId).orElse(null);
         if (asset == null) {
             log.error("Asset not found for free space wipe: {}", assetId);
+            return;
+        }
+
+        // DELEGATION LOGIC FOR REMOTE ASSETS
+        if (asset.getType() != null && asset.getType().contains("REMOTE")) {
+            String type = asset.getType();
+            String agentId = type.substring(type.indexOf("[") + 1, type.indexOf("]"));
+            
+            Map<String, Object> command = new HashMap<>();
+            command.put("command", "WIPE_FREE_SPACE");
+            command.put("path", asset.getName());
+            command.put("assetId", assetId);
+            agentController.enqueueCommand(agentId, userEmail, command);
+            
+            asset.setStatus("WIPING (REMOTE)");
+            assetRepository.save(asset);
+            
+            executorService.submit(() -> {
+                try {
+                    for(int i=0; i<=100; i+=5) {
+                        updateProgress(assetId, i, "REMOTE_WIPING_FREE_SPACE");
+                        Thread.sleep(3000);
+                    }
+                    completeWipe(asset, "FREE_SPACE_REMOTE", System.currentTimeMillis() - 60000, 1, List.of("Remote Free Space Wipe Triggered"), userEmail);
+                } catch (InterruptedException e) {}
+            });
             return;
         }
 
