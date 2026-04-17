@@ -68,6 +68,12 @@ public class DriveService {
 
         // 3. Update status of registered assets that are NOT in the current scan
         for (Asset asset : existingAssets) {
+            // SKIP: If it's a remote asset, don't mark it as disconnected here
+            // The AgentController handles the status of remote assets
+            if (asset.getType() != null && asset.getType().contains("REMOTE")) {
+                continue;
+            }
+
             if (asset.getName() != null && !currentRootPaths.contains(asset.getName().toUpperCase())) {
                 if (!"DISCONNECTED".equals(asset.getStatus()) && 
                     !"WIPED".equals(asset.getStatus()) && 

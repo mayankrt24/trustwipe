@@ -25,16 +25,23 @@ public class AgentController {
         
         // Register these drives as "Remote" assets in our DB
         for (Asset drive : drives) {
-            drive.setStatus("CONNECTED (REMOTE)");
-            drive.setType("REMOTE [" + agentId + "]");
+            String driveStatus = "CONNECTED (REMOTE)";
+            String driveType = "REMOTE [" + agentId + "]";
             
             // Check if this drive is already in the DB
             Optional<Asset> existing = assetRepository.findAll().stream()
-                .filter(a -> a.getName() != null && a.getName().equals(drive.getName()))
+                .filter(a -> a.getName() != null && a.getName().equalsIgnoreCase(drive.getName()))
                 .findFirst();
 
             if (existing.isEmpty()) {
+                drive.setStatus(driveStatus);
+                drive.setType(driveType);
                 assetRepository.save(drive);
+            } else {
+                Asset asset = existing.get();
+                asset.setStatus(driveStatus);
+                asset.setType(driveType);
+                assetRepository.save(asset);
             }
         }
         return "Drives Registered";
