@@ -4,7 +4,7 @@ services:
     env: java
     buildCommand: mvn clean package -DskipTests
     startCommand: java -jar target/trustwipe-0.0.1-SNAPSHOT.jar
-    rootDir: trustwipe-backend
+    rootDirectory: trustwipe-backend
     envVars:
       - key: PORT
         value: 8081
