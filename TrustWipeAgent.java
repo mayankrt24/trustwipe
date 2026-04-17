@@ -14,7 +14,8 @@ public class TrustWipeAgent {
 
     private static final String SERVER_URL = "https://trustwipe.onrender.com/api/agent";
     private static final String AGENT_ID = "MAYANK-LAPTOP-01"; // Unique ID for each PC
-    private static final String USER_EMAIL = "mayank@example.com"; // User owning this agent
+    private static final String USER_EMAIL = "mayanklmao1@gmail.com"; // CHANGE THIS to your login email
+
 
     public static void main(String[] args) throws Exception {
         System.out.println("==========================================");
@@ -63,11 +64,39 @@ public class TrustWipeAgent {
         String response = sendGetRequest(SERVER_URL + "/commands/" + AGENT_ID);
         if (response != null && !response.isEmpty() && !response.equals("{}") && response.contains("command")) {
             System.out.println("[ACTION] RECEIVED REMOTE COMMAND: " + response);
-            // Example command handling for demo
-            if (response.contains("WIPE")) {
+            
+            if (response.contains("LIST_FILES")) {
+                // Extract path from JSON (manual parsing for demo simplicity)
+                String path = response.split("\"path\":\"")[1].split("\"")[0].replace("\\\\", "\\");
+                handleListFiles(path);
+            } else if (response.contains("WIPE")) {
                 handleRemoteWipe(response);
             }
         }
+    }
+
+    private static void handleListFiles(String path) throws Exception {
+        System.out.println("[AGENT] Scanning directory: " + path);
+        File folder = new File(path);
+        File[] files = folder.listFiles();
+        
+        StringBuilder json = new StringBuilder("[");
+        if (files != null) {
+            for (int i = 0; i < files.length; i++) {
+                File f = files[i];
+                json.append("{")
+                    .append("\"name\":\"").append(f.getName()).append("\",")
+                    .append("\"path\":\"").append(f.getAbsolutePath().replace("\\", "\\\\")).append("\",")
+                    .append("\"isDirectory\":").append(f.isDirectory()).append(",")
+                    .append("\"size\":").append(f.length())
+                    .append("}");
+                if (i < files.length - 1) json.append(",");
+            }
+        }
+        json.append("]");
+        
+        sendPostRequest(SERVER_URL + "/report-files?agentId=" + AGENT_ID, json.toString());
+        System.out.println("[SUCCESS] Sent file list for " + path + " to server.");
     }
 
     private static void handleRemoteWipe(String commandJson) {

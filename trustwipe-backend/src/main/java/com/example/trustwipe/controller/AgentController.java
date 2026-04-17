@@ -18,6 +18,21 @@ public class AgentController {
     // Stores pending commands for each agent: Map<AgentId, Command>
     private static final Map<String, Map<String, Object>> commandQueue = new ConcurrentHashMap<>();
     private static final Map<String, Long> activeAgents = new ConcurrentHashMap<>();
+    private static final Map<String, List<Object>> fileCache = new ConcurrentHashMap<>();
+
+    public void enqueueCommand(String agentId, Map<String, Object> command) {
+        commandQueue.put(agentId, command);
+    }
+
+    @PostMapping("/report-files")
+    public void reportFiles(@RequestParam String agentId, @RequestBody List<Object> files) {
+        fileCache.put(agentId, files);
+    }
+
+    @GetMapping("/get-files")
+    public List<Object> getFiles(@RequestParam String agentId) {
+        return fileCache.getOrDefault(agentId, Collections.emptyList());
+    }
 
     @PostMapping("/report-drives")
     public String reportDrives(@RequestParam String agentId, @RequestParam String userEmail, @RequestBody List<Asset> drives) {
