@@ -12,14 +12,16 @@ import java.util.*;
  */
 public class TrustWipeAgent {
 
-    private static final String SERVER_URL = "http://localhost:8081/api/agent";
+    private static final String SERVER_URL = "https://trustwipe.onrender.com/api/agent";
     private static final String AGENT_ID = "MAYANK-LAPTOP-01"; // Unique ID for each PC
+    private static final String USER_EMAIL = "mayank@example.com"; // User owning this agent
 
     public static void main(String[] args) throws Exception {
         System.out.println("==========================================");
         System.out.println("   TRUSTWIPE REMOTE AGENT - v1.0         ");
         System.out.println("==========================================");
         System.out.println("[INFO] Agent ID: " + AGENT_ID);
+        System.out.println("[INFO] User: " + USER_EMAIL);
         System.out.println("[INFO] Server: " + SERVER_URL);
 
         // 1. Scan and report local drives to the server
@@ -53,7 +55,7 @@ public class TrustWipeAgent {
         }
         json.append("]");
 
-        sendPostRequest(SERVER_URL + "/report-drives?agentId=" + AGENT_ID, json.toString());
+        sendPostRequest(SERVER_URL + "/report-drives?agentId=" + AGENT_ID + "&userEmail=" + USER_EMAIL, json.toString());
         System.out.println("[SUCCESS] Reported " + roots.length + " drives to central console.");
     }
 

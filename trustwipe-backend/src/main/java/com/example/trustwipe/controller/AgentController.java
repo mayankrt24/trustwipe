@@ -20,7 +20,7 @@ public class AgentController {
     private static final Map<String, Long> activeAgents = new ConcurrentHashMap<>();
 
     @PostMapping("/report-drives")
-    public String reportDrives(@RequestParam String agentId, @RequestBody List<Asset> drives) {
+    public String reportDrives(@RequestParam String agentId, @RequestParam String userEmail, @RequestBody List<Asset> drives) {
         activeAgents.put(agentId, System.currentTimeMillis());
         
         // Register these drives as "Remote" assets in our DB
@@ -28,19 +28,21 @@ public class AgentController {
             String driveStatus = "CONNECTED (REMOTE)";
             String driveType = "REMOTE [" + agentId + "]";
             
-            // Check if this drive is already in the DB
+            // Check if this drive is already in the DB for this user
             Optional<Asset> existing = assetRepository.findAll().stream()
-                .filter(a -> a.getName() != null && a.getName().equalsIgnoreCase(drive.getName()))
+                .filter(a -> a.getName() != null && a.getName().equalsIgnoreCase(drive.getName()) && userEmail.equals(a.getUserEmail()))
                 .findFirst();
 
             if (existing.isEmpty()) {
                 drive.setStatus(driveStatus);
                 drive.setType(driveType);
+                drive.setUserEmail(userEmail);
                 assetRepository.save(drive);
             } else {
                 Asset asset = existing.get();
                 asset.setStatus(driveStatus);
                 asset.setType(driveType);
+                asset.setUserEmail(userEmail);
                 assetRepository.save(asset);
             }
         }

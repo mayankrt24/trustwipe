@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import org.springframework.web.bind.annotation.RequestParam;
+
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
@@ -17,7 +19,7 @@ public class ReportController {
     private WipeReportRepository wipeReportRepository;
 
     @GetMapping
-    public List<WipeReport> getAllReports() {
-        return wipeReportRepository.findAll();
+    public List<WipeReport> getAllReports(@RequestParam String userEmail) {
+        return wipeReportRepository.findByUserEmail(userEmail);
     }
 }

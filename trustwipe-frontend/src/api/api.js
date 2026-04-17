@@ -4,6 +4,20 @@ const api = axios.create({
   baseURL: '/api',
 });
 
+// Add a request interceptor to include userEmail in all requests
+api.interceptors.request.use(config => {
+  const userEmail = localStorage.getItem('userEmail');
+  if (userEmail) {
+    config.params = {
+      ...config.params,
+      userEmail: userEmail
+    };
+  }
+  return config;
+}, error => {
+  return Promise.reject(error);
+});
+
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   signup: (email, password) => api.post('/auth/signup', { email, password }),

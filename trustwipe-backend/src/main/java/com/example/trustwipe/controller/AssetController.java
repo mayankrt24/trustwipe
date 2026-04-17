@@ -15,16 +15,17 @@ public class AssetController {
     private AssetRepository assetRepository;
 
     @PostMapping
-    public Asset createAsset(@RequestBody Asset asset) {
+    public Asset createAsset(@RequestBody Asset asset, @RequestParam String userEmail) {
         if (asset.getName() == null || asset.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Asset name cannot be null or empty");
         }
+        asset.setUserEmail(userEmail);
         return assetRepository.save(asset);
     }
 
     @GetMapping
-    public List<Asset> getAllAssets() {
-        return assetRepository.findAll();
+    public List<Asset> getAllAssets(@RequestParam String userEmail) {
+        return assetRepository.findByUserEmail(userEmail);
     }
 
     @GetMapping("/{id}")

@@ -362,6 +362,7 @@ public class WipeService {
         report.setPasses(passes);
         report.setFinalStatus("SUCCESS");
         report.setVerificationHash(UUID.randomUUID().toString());
+        report.setUserEmail(userEmail);
         
         System.out.println("WIPED FILES: " + wipedFiles);
         report.setWipedFiles(wipedFiles);
@@ -370,7 +371,7 @@ public class WipeService {
         updateProgress(asset.getId(), 100, "COMPLETED");
     }
 
-    private void failWipe(Asset asset, String type, String error, List<String> wipedFiles) {
+    private void failWipe(Asset asset, String type, String error, List<String> wipedFiles, String userEmail) {
         asset.setStatus("FAILED");
         assetRepository.save(asset);
         WipeReport report = new WipeReport();
@@ -379,6 +380,7 @@ public class WipeService {
         report.setTimestamp(LocalDateTime.now());
         report.setFinalStatus("FAILED: " + error);
         report.setVerificationHash(UUID.randomUUID().toString());
+        report.setUserEmail(userEmail);
         
         System.out.println("WIPED FILES: " + wipedFiles);
         report.setWipedFiles(wipedFiles);

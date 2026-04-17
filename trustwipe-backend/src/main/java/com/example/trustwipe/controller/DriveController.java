@@ -18,8 +18,8 @@ public class DriveController {
     private DriveService driveService;
 
     @GetMapping("/scan")
-    public List<Asset> scanDrives() {
-        return driveService.scanAndRegisterDrives();
+    public List<Asset> scanDrives(@RequestParam String userEmail) {
+        return driveService.scanAndRegisterDrives(userEmail);
     }
 
     @GetMapping("/list-path")
@@ -57,7 +57,7 @@ public class DriveController {
     }
 
     @GetMapping
-    public List<Asset> getDrives() {
-        return driveService.getAllRegisteredAssets();
+    public List<Asset> getDrives(@RequestParam String userEmail) {
+        return driveService.getAllRegisteredAssets(userEmail);
     }
 }

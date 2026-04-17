@@ -18,6 +18,7 @@ public class WipeReport {
     private String finalStatus;
     private String verificationHash;
     private List<String> wipedFiles;
+    private String userEmail;
 
     public String getId() {
         return id;
@@ -25,6 +26,14 @@ public class WipeReport {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 
     public String getAssetId() {

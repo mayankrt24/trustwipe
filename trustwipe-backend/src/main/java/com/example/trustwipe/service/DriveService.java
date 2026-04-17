@@ -24,12 +24,12 @@ public class DriveService {
      * Scans for system drives and automatically registers new ones in the database.
      * @return List of all registered assets.
      */
-    public List<Asset> scanAndRegisterDrives() {
+    public List<Asset> scanAndRegisterDrives(String userEmail) {
         File[] roots = File.listRoots();
-        log.info("System roots detected: {}", roots.length);
+        log.info("System roots detected: {} for user: {}", roots.length, userEmail);
         
-        // 1. Get all currently registered assets
-        List<Asset> existingAssets = assetRepository.findAll();
+        // 1. Get all currently registered assets for this user
+        List<Asset> existingAssets = assetRepository.findByUserEmail(userEmail);
         List<String> currentRootPaths = new ArrayList<>();
         List<Asset> activeAssets = new ArrayList<>();
 
@@ -39,15 +39,15 @@ public class DriveService {
             log.info("Checking system root: {}", path);
             currentRootPaths.add(path.toUpperCase());
             
-            Optional<Asset> existingAsset = assetRepository.findByNameIgnoreCase(path);
+            Optional<Asset> existingAsset = assetRepository.findByNameIgnoreCaseAndUserEmail(path, userEmail);
 
             if (existingAsset.isEmpty()) {
-                log.info("Registering NEW drive: {}", path);
+                log.info("Registering NEW drive: {} for user: {}", path, userEmail);
                 String type = detectDriveType(root);
                 long size = root.getTotalSpace();
                 
                 if (size > 0) {
-                    Asset newAsset = new Asset(path, type, size, "CONNECTED");
+                    Asset newAsset = new Asset(path, type, size, "CONNECTED", userEmail);
                     Asset saved = assetRepository.save(newAsset);
                     log.info("Saved new asset to MongoDB with ID: {}", saved.getId());
                     activeAssets.add(saved);
@@ -56,7 +56,7 @@ public class DriveService {
                 }
             } else {
                 Asset asset = existingAsset.get();
-                log.info("Drive {} already exists in DB with status: {}", path, asset.getStatus());
+                log.info("Drive {} already exists in DB for user {} with status: {}", path, userEmail, asset.getStatus());
                 // Update status to CONNECTED if it was disconnected
                 if (!"WIPING".equals(asset.getStatus()) && !"WIPED".equals(asset.getStatus())) {
                     asset.setStatus("CONNECTED");
@@ -103,8 +103,8 @@ public class DriveService {
         return "UNKNOWN";
     }
 
-    public List<Asset> getAllRegisteredAssets() {
-        return assetRepository.findAll().stream()
+    public List<Asset> getAllRegisteredAssets(String userEmail) {
+        return assetRepository.findByUserEmail(userEmail).stream()
                 .filter(a -> a.getName() != null)
                 .toList();
     }

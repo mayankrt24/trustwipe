@@ -11,6 +11,7 @@ public class Asset {
     private String type;
     private long size;
     private String status;
+    private String userEmail;
 
     public Asset() {}
 
@@ -19,6 +20,14 @@ public class Asset {
         this.type = type;
         this.size = size;
         this.status = status;
+    }
+
+    public Asset(String name, String type, long size, String status, String userEmail) {
+        this.name = name;
+        this.type = type;
+        this.size = size;
+        this.status = status;
+        this.userEmail = userEmail;
     }
 
     public String getId() {
@@ -59,5 +68,13 @@ public class Asset {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 }
