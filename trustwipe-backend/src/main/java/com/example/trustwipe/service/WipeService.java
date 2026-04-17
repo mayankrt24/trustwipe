@@ -247,7 +247,7 @@ public class WipeService {
                 if (tempFile != null && tempFile.exists()) {
                     try { Files.delete(tempFile.toPath()); } catch (IOException ignore) {}
                 }
-                failWipe(asset, "FREE_SPACE", e.getMessage(), wipedFiles);
+                failWipe(asset, "FREE_SPACE", e.getMessage(), wipedFiles, userEmail);
             }
         });
     }

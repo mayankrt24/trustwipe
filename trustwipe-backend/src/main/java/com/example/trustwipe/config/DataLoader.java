@@ -27,7 +27,7 @@ public class DataLoader implements CommandLineRunner {
         int retries = 5;
         while (retries > 0) {
             try {
-                driveService.scanAndRegisterDrives();
+                driveService.scanAndRegisterDrives("system@trustwipe.com");
                 log.info("Initial scan complete. Database is now persistent.");
                 break;
             } catch (Exception e) {
