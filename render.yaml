@@ -1,9 +1,7 @@
 services:
   - type: web
     name: trustwipe-backend
-    env: java
-    buildCommand: mvn clean package -DskipTests
-    startCommand: java -jar target/trustwipe-0.0.1-SNAPSHOT.jar
+    env: docker
     rootDir: trustwipe-backend
     envVars:
       - key: PORT
