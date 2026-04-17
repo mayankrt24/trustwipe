@@ -17,8 +17,16 @@ public class WipeController {
      * Triggers a full NIST 3-pass wipe on an asset.
      */
     @PostMapping("/{assetId}")
-    public void wipeAsset(@PathVariable String assetId) {
-        wipeService.fullWipe(assetId);
+    public void wipeAsset(@PathVariable String assetId, @RequestParam(required = false) String userEmail) {
+        wipeService.fullWipe(assetId, userEmail);
+    }
+
+    /**
+     * Triggers a secure wipe of ONLY the free space on a drive.
+     */
+    @PostMapping("/free-space/{assetId}")
+    public void wipeFreeSpace(@PathVariable String assetId, @RequestParam(required = false) String userEmail) {
+        wipeService.wipeFreeSpace(assetId, userEmail);
     }
 
     /**
@@ -26,7 +34,7 @@ public class WipeController {
      */
     @PostMapping("/partial")
     public void partialWipe(@RequestBody PartialWipeRequest request) {
-        wipeService.partialWipe(request.getAssetId(), request.getPaths());
+        wipeService.partialWipe(request.getAssetId(), request.getPaths(), request.getUserEmail());
     }
 
     /**

@@ -17,8 +17,9 @@ export const assetApi = {
 };
 
 export const wipeApi = {
-  fullWipe: (assetId) => api.post(`/wipe/${assetId}`),
-  partialWipe: (assetId, paths) => api.post('/wipe/partial', { assetId, paths }),
+  fullWipe: (assetId, userEmail) => api.post(`/wipe/${assetId}`, null, { params: { userEmail } }),
+  wipeFreeSpace: (assetId, userEmail) => api.post(`/wipe/free-space/${assetId}`, null, { params: { userEmail } }),
+  partialWipe: (assetId, paths, userEmail) => api.post('/wipe/partial', { assetId, paths, userEmail }),
   getProgress: (assetId) => api.get(`/wipe/progress/${assetId}`),
 };
 

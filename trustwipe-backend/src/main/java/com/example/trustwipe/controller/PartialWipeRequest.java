@@ -5,6 +5,7 @@ import java.util.List;
 public class PartialWipeRequest {
     private String assetId;
     private List<String> paths;
+    private String userEmail;
 
     public String getAssetId() {
         return assetId;
@@ -20,5 +21,13 @@ public class PartialWipeRequest {
 
     public void setPaths(List<String> paths) {
         this.paths = paths;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 }

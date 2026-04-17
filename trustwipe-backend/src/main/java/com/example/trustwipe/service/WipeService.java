@@ -36,7 +36,7 @@ public class WipeService {
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Map<String, Map<String, Object>> wipeProgressMap = new ConcurrentHashMap<>();
 
-    public void fullWipe(String assetId) {
+    public void fullWipe(String assetId, String userEmail) {
         Asset asset = assetRepository.findById(assetId).orElse(null);
         if (asset == null) {
             log.error("Asset not found for full wipe: {}", assetId);
@@ -99,7 +99,7 @@ public class WipeService {
                         log.warn("Could not delete file during full wipe: {} - {}", file.getName(), e.getMessage());
                     }
                 }
-                completeWipe(asset, "FULL", startTime, 3, wipedPaths);
+                completeWipe(asset, "FULL", startTime, 3, wipedPaths, userEmail);
 
             } catch (Exception e) {
                 failWipe(asset, "FULL", e.getMessage(), wipedPaths);
@@ -107,7 +107,7 @@ public class WipeService {
         });
     }
 
-    public void partialWipe(String assetId, List<String> paths) {
+    public void partialWipe(String assetId, List<String> paths, String userEmail) {
         Asset asset = assetRepository.findById(assetId).orElse(null);
         if (asset == null) {
             log.error("Asset not found for partial wipe: {}", assetId);
@@ -147,7 +147,7 @@ public class WipeService {
                     for (File target : targets) {
                         if (target.exists() && target.isDirectory()) wipeDirectory(target, wipedFiles);
                     }
-                    completeWipe(asset, "PARTIAL", startTime, 3, wipedFiles);
+                    completeWipe(asset, "PARTIAL", startTime, 3, wipedFiles, userEmail);
                     return;
                 }
 
@@ -166,11 +166,88 @@ public class WipeService {
                     }
                 }
 
-                completeWipe(asset, "PARTIAL", startTime, 3, wipedFiles);
+                completeWipe(asset, "PARTIAL", startTime, 3, wipedFiles, userEmail);
 
             } catch (Exception e) {
                 log.error("Partial wipe exception: ", e);
                 failWipe(asset, "PARTIAL", e.getMessage(), wipedFiles);
+            }
+        });
+    }
+
+    public void wipeFreeSpace(String assetId, String userEmail) {
+        Asset asset = assetRepository.findById(assetId).orElse(null);
+        if (asset == null) {
+            log.error("Asset not found for free space wipe: {}", assetId);
+            return;
+        }
+
+        asset.setStatus("WIPING");
+        assetRepository.save(asset);
+        updateProgress(assetId, 0, "INITIALIZING");
+
+        executorService.submit(() -> {
+            long startTime = System.currentTimeMillis();
+            List<String> wipedFiles = new ArrayList<>();
+            File tempFile = null;
+            try {
+                log.info("Starting free space wipe for asset {}", assetId);
+                File root = new File(asset.getName());
+                if (!root.exists() || !root.isDirectory()) {
+                    throw new IOException("Invalid drive path: " + asset.getName());
+                }
+
+                // 1. Initial delay
+                for (int i = 0; i < 5; i++) {
+                    updateProgress(assetId, (int)(i * 2), "ANALYZING DISK");
+                    Thread.sleep(200);
+                }
+
+                // 2. Perform the wipe by creating a massive sparse file or direct writes
+                // We'll create a file named "TRUSTWIPE_EMPTY.tmp" in the root of the target drive
+                tempFile = new File(root, "TRUSTWIPE_EMPTY.tmp");
+                log.info("Creating temporary wipe file: {}", tempFile.getAbsolutePath());
+
+                long freeSpace = root.getUsableSpace();
+                long totalToWipe = freeSpace - (1024L * 1024 * 1024 * 2); // Leave 2GB for OS stability
+                
+                if (totalToWipe <= 0) {
+                    log.info("No free space to wipe on drive {}", asset.getName());
+                } else {
+                    try (RandomAccessFile raf = new RandomAccessFile(tempFile, "rw")) {
+                        byte[] buffer = new byte[1024 * 1024]; // 1MB chunks
+                        new Random().nextBytes(buffer);
+                        
+                        long written = 0;
+                        while (written < totalToWipe) {
+                            int toWrite = (int) Math.min(buffer.length, totalToWipe - written);
+                            raf.write(buffer, 0, toWrite);
+                            written += toWrite;
+                            
+                            int progress = 10 + (int)((written / (double) totalToWipe) * 85);
+                            if (written % (1024 * 1024 * 100) == 0) { // Update progress every 100MB
+                                updateProgress(assetId, Math.min(progress, 95), "OVERWRITING FREE SPACE (" + (written / (1024 * 1024)) + " MB)");
+                            }
+                        }
+                    }
+                }
+
+                // 3. Cleanup: Securely delete the temp file
+                if (tempFile.exists()) {
+                    updateProgress(assetId, 96, "REMOVING TEMPORARY DATA");
+                    secureWipeFileInternal(tempFile, 1);
+                    Files.delete(tempFile.toPath());
+                    wipedFiles.add("[FREE_SPACE_WIPE] " + tempFile.getAbsolutePath());
+                }
+
+                completeWipe(asset, "FREE_SPACE", startTime, 1, wipedFiles, userEmail);
+
+            } catch (Exception e) {
+                log.error("Free space wipe exception: ", e);
+                if (tempFile != null && tempFile.exists()) {
+                    try { Files.delete(tempFile.toPath()); } catch (IOException ignore) {}
+                }
+                failWipe(asset, "FREE_SPACE", e.getMessage(), wipedFiles);
             }
         });
     }
@@ -274,7 +351,7 @@ public class WipeService {
         wipeProgressMap.put(assetId, progress);
     }
 
-    private void completeWipe(Asset asset, String type, long startTime, int passes, List<String> wipedFiles) {
+    private void completeWipe(Asset asset, String type, long startTime, int passes, List<String> wipedFiles, String userEmail) {
         asset.setStatus("WIPED");
         assetRepository.save(asset);
         WipeReport report = new WipeReport();

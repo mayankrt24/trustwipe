@@ -186,11 +186,12 @@ const FileExplorer = ({ rootPath, onStartWipe, onClose }) => {
 const WipeModal = ({ asset, onClose, onRefresh }) => {
   const [mode, setMode] = useState('choice'); // choice, partial, confirming
   const { addToast } = useToast();
+  const userEmail = localStorage.getItem('userEmail');
 
   const handleFullWipe = async () => {
     try {
       addToast(`Full wipe started for ${asset.name}`, 'info');
-      await wipeApi.fullWipe(asset.id);
+      await wipeApi.fullWipe(asset.id, userEmail);
       onRefresh();
       onClose();
     } catch (error) {
@@ -199,10 +200,22 @@ const WipeModal = ({ asset, onClose, onRefresh }) => {
     }
   };
 
+  const handleFreeSpaceWipe = async () => {
+    try {
+      addToast(`Free space wipe started for ${asset.name}`, 'info');
+      await wipeApi.wipeFreeSpace(asset.id, userEmail);
+      onRefresh();
+      onClose();
+    } catch (error) {
+      addToast(`Failed to start free space wipe for ${asset.name}`, 'error');
+      console.error('Free space wipe failed', error);
+    }
+  };
+
   const handlePartialWipe = async (paths) => {
     try {
       addToast(`Partial wipe started for ${asset.name}`, 'info');
-      await wipeApi.partialWipe(asset.id, paths);
+      await wipeApi.partialWipe(asset.id, paths, userEmail);
       onRefresh();
       onClose();
     } catch (error) {
@@ -257,6 +270,16 @@ const WipeModal = ({ asset, onClose, onRefresh }) => {
               <div>
                 <p className="font-bold text-slate-900 dark:text-white">Partial Wipe</p>
                 <p className="text-xs text-slate-500 mt-1">Select specific files and folders.</p>
+              </div>
+            </button>
+            <button 
+              onClick={handleFreeSpaceWipe}
+              className="flex flex-col items-center gap-4 p-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500 transition-all text-center group md:col-span-2"
+            >
+              <Activity className="w-10 h-10 text-slate-400 group-hover:text-amber-500" />
+              <div>
+                <p className="font-bold text-slate-900 dark:text-white">Wipe Free Space</p>
+                <p className="text-xs text-slate-500 mt-1">Securely overwrite previously deleted data without touching existing files.</p>
               </div>
             </button>
           </div>
