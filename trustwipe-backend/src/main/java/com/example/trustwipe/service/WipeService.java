@@ -102,7 +102,7 @@ public class WipeService {
                 completeWipe(asset, "FULL", startTime, 3, wipedPaths, userEmail);
 
             } catch (Exception e) {
-                failWipe(asset, "FULL", e.getMessage(), wipedPaths);
+                failWipe(asset, "FULL", e.getMessage(), wipedPaths, userEmail);
             }
         });
     }
@@ -170,7 +170,7 @@ public class WipeService {
 
             } catch (Exception e) {
                 log.error("Partial wipe exception: ", e);
-                failWipe(asset, "PARTIAL", e.getMessage(), wipedFiles);
+                failWipe(asset, "PARTIAL", e.getMessage(), wipedFiles, userEmail);
             }
         });
     }
